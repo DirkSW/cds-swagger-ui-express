@@ -7,16 +7,24 @@ const LOG = cds.log('swagger')
 module.exports = (options = {}) => {
   options = Object.assign({ basePath: '/$api-docs', apiPath: '' }, options)
   const router = express.Router()
+  
+  const cssopt = {
+    swaggerOptions: {
+      docExpansion: 'none'
+    },
+    customfavIcon: 'myFavicon_small.png',
+    customSiteTitle: 'My Service Name',
+    customCss: ``
+  }
 
   cds.on('serving', service => {
     if (!isOData(service)) return
-    const apiPath = options.basePath + service.path
-    const mount = apiPath.replace('$', '[\\$]')
-    LOG._debug && LOG.debug('serving Swagger UI for ', { service: service.name, at: apiPath })
-    router.use(mount, (req, _, next) => {
-      req.swaggerDoc = toOpenApiDoc(service, options)
-      next()
-    }, swaggerUi.serve, swaggerUi.setup())
+    const apiPath = service.path
+    const apiDocPath = join(options.basePath, service.path)
+    const mount = apiDocPath.replace('$', '[\\$]')
+    const swaggerDoc = toOpenApiDoc(null, service, options)
+    LOG._debug && LOG.debug('serving Swagger UI for ', { service: service.name, at: apiDocPath })
+    router.use(mount, swaggerUi.serveFiles(swaggerDoc, cssopt), swaggerUi.setup(swaggerDoc, cssopt))
     addLinkToIndexHtml(service, apiPath)
   })
   return router
